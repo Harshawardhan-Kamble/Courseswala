@@ -1,42 +1,42 @@
-const dotenv = require("dotenv");
+import dotenv from "dotenv";
 dotenv.config();
-const express = require("express");
+import express, { Request, Response } from "express";
 const app = express();
-const mongoose = require("mongoose");
-mongoose.connect(process.env.DATABASE_URL);
+import mongoose,{InferSchemaType,Schema} from "mongoose";
+mongoose.connect(process.env.DATABASE_URL!);
 app.use(express.json());
-const Course = mongoose.model("Course", {
-  title: String,
-  description: String,
-  price: Number,
-  imageLink: String,
-});
-const Admin = mongoose.model("Admin", {
-  username: String,
-  password: String,
-});
-const User = mongoose.model("User", {
-  username: String,
-  password: String,
-  premium: {
-    type: Boolean,
-    default: false,
-  },
-  purchasedCourses:{
-    type:[],
-    default: [],
+const courseSchema=new Schema(
+  {
+    title: String,
+    description: String,
+    price: Number,
+    imageLink: String,
   }
-});
-interface AdminSignupRequest {
-  body: {
-    username: string;
-    password: string;
-  };
+)
+const adminSchema=new Schema({
+  username: String,
+  password: String,
 }
-interface AdminSignupResponse {
-  message: string;
-}
-const getCourses = async (req: any, res: any) => {
+
+)
+const userSchema=new Schema(
+  {
+    username: String,
+    password: String,
+    premium: {
+      type: Boolean,
+      default: false,
+    },
+    purchasedCourses: {
+      type: [],
+      default: [],
+    },
+  }
+)
+const Course = mongoose.model<InferSchemaType<typeof courseSchema>>("Course", courseSchema);
+const Admin = mongoose.model<InferSchemaType<typeof adminSchema>>("Admin", adminSchema);
+const User = mongoose.model<InferSchemaType<typeof adminSchema>>("User", userSchema);
+const getCourses = async (req: Request, res: Response) => {
   const { username, password } = req.headers;
   const existingAdmin = await Admin.find({
     username,
@@ -57,7 +57,7 @@ const getCourses = async (req: any, res: any) => {
     });
   }
 };
-app.post("/admin/signup", async (req: AdminSignupRequest, res: any) => {
+app.post("/admin/signup", async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
     const admin = new Admin({
@@ -72,7 +72,7 @@ app.post("/admin/signup", async (req: AdminSignupRequest, res: any) => {
     console.log("Err", error);
   }
 });
-app.post("/admin/courses", async (req: any, res: any) => {
+app.post("/admin/courses", async (req: Request, res: Response) => {
   try {
     const { username, password } = req.headers;
     const { title, description, price, imageLink } = req.body;
@@ -108,7 +108,7 @@ app.post("/admin/courses", async (req: any, res: any) => {
 });
 app.get("/admin/courses", getCourses);
 app.get("/users/courses", getCourses);
-app.post("/users/signup", async (req: any, res: any) => {
+app.post("/users/signup", async (req: Request, res: Response) => {
   try {
     const { username, password } = req.body;
     const existingUser = await User.find({
@@ -133,50 +133,44 @@ app.post("/users/signup", async (req: any, res: any) => {
     console.log("Err", error);
   }
 });
-app.post("/users/courses/:courseId", async (req: any, res: any) => {
+app.post("/users/courses/:courseId", async (req: Request, res: Response) => {
   try {
     const { username, password } = req.headers;
     const existingUser = await User.find({
       username,
       password,
     });
-    console.log(existingUser)
+    console.log(existingUser);
     if (existingUser.length > 0) {
       const courseid = req.params.courseId;
       // console.log(courseid)
       const existingCourse = await Course.find({
-        _id:courseid
-      }); 
-      
+        _id: courseid,
+      });
+
       if (existingCourse.length > 0) {
         await User.updateOne(
           { username },
-          { $push: { purchasedCourses: existingCourse } },
+          { $push: { purchasedCourses: existingCourse } }
         );
         res.json({
-          msg:"Course Purchased Successfully"
-      
-        })
+          msg: "Course Purchased Successfully",
+        });
       } else {
         res.json({
           msg: "Page not found",
         });
       }
-    }
-    else{
+    } else {
       res.json({
-      msg:"Invalid Credentials"
-      })
+        msg: "Invalid Credentials",
+      });
     }
   } catch (error) {
     console.log(error);
   }
 });
-app.post("/users/purchasedCourses",async(req:any,res:any)=>{
-  
-  
-  
-  
+app.get("/users/purchasedCourses", async (req: Request, res: Response) => {
   const { username, password } = req.headers;
   const existingUser = await User.find({
     username,
@@ -184,19 +178,21 @@ app.post("/users/purchasedCourses",async(req:any,res:any)=>{
   });
 
   if (existingUser.length > 0) {
-    const purchasedCourses=await User.find({
-      username
-    },{purchasedCourses:1,_id:0})
+    const purchasedCourses = await User.find(
+      {
+        username,
+      },
+      { purchasedCourses: 1, _id: 0 }
+    );
     res.json({
-      output:purchasedCourses
-    })
-  }
-  else{
+      output: purchasedCourses,
+    });
+  } else {
     res.json({
-      msg:"Invalid Credintials"
-    })
+      msg: "Invalid Credintials",
+    });
   }
-})
+});
 app.listen(3000, () => {
   console.log("Server listening on port 3000");
 });
