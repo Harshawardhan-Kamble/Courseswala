@@ -7,8 +7,6 @@ const router=Router()
 router.post('/signup', async (req:Request, res:Response) => {
     try {
             const { username, password } = req.body;
-            const hashword=await hashedPassword(password)
-            console.log(hashword)
             const existingUser = await User.find({
               username: username,
             });
@@ -20,7 +18,7 @@ router.post('/signup', async (req:Request, res:Response) => {
             } else {
               await User.create ({
                 username,
-                password:hashword,
+                password:await hashedPassword(password),
               });
               res.json({
                 message: "User created Succesfully",
