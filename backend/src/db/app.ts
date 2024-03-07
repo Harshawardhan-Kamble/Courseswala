@@ -35,5 +35,5 @@ const userSchema=new Schema(
 )
 export const Course = mongoose.model<InferSchemaType<typeof courseSchema>>("Course", courseSchema);
 export const Admin = mongoose.model<InferSchemaType<typeof adminSchema>>("Admin", adminSchema);
-export const User = mongoose.model<InferSchemaType<typeof adminSchema>>("User", userSchema);
+export const User = mongoose.model<InferSchemaType<typeof userSchema>>("User", userSchema);
 
